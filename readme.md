@@ -119,21 +119,21 @@ Dynamic Memory Allocation: Allocating and using dynamic memory for arrays.
 String Manipulation: Using pointers to traverse and manipulate strings.
 Each example shows how pointers enable efficient memory management and manipulation in C programming.
 ```
- /* the tree
+ the tree
         (1)
        /   \
     NULL    NULL
-*/
 
- /* 2 and 3 become the left and right children of 1
+
+ 2 and 3 become the left and right children of 1
         (1)
        /   \
       2    3
      /\   /\
     0  0  0  0
 
-*/
-/* 4 and 5 become the left and right children of 2
+
+4 and 5 become the left and right children of 2
          (1)
         /     \
        (2)    (3)
