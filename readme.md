@@ -140,7 +140,6 @@ Each example shows how pointers enable efficient memory management and manipulat
        (2)    (3)
       /   \   / \
      (4)  0  0  (5)
-    */
 ```
 ```c
 1. A minus(-) sign tells left alignment.
