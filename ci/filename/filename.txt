@@ -1,0 +1,3 @@
+Let's use the w mode from the previous chapter again,
+and write something to the file we just created.
+Hi everybody!

@@ -1,0 +1,50 @@
+CC=gcc
+DEBUG=yes
+
+# The name of the source files
+SOURCES = pascal.c
+
+# The name of the executable
+EXE = results
+
+# -g for debug
+# -Wall to get all the possible warnings
+# -ansi -pendantic to get portable code
+ifeq ($(DEBUG),yes)
+    CFLAGS=-W -Wall -ansi -Wextra -pedantic-errors -g -std=c11
+    LDFLAGS= -Wall -lm
+else
+    CFLAGS=-W -Wall -ansi -Wextra -pedantic-errors -std=c11
+    LDFLAGS= -Wall -lm
+endif
+
+# Libraries to link with (none for the moment)
+LIBS =
+
+# This creates a list of object files from the source files
+OBJECTS = $(SOURCES:%.c=%.o)
+
+# The first target, this will be the default target if none is specified
+# This target tells "make" to make the "all" target
+default: all
+
+# Having an "all" target is customary, so one could write "make all"
+# It depends on the executable program
+all: $(EXE)
+
+# This will link the executable from the object files
+$(EXE): $(OBJECTS)
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $(EXE) $(LIBS)
+
+# This is a target that will compiler all needed source files into object files
+# We don't need to specify a command or any rules, "make" will handle it automatically
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Target to clean up after us
+clean:
+	-rm -f $(EXE)      # Remove the executable file
+	-rm -f $(OBJECTS)  # Remove the object files
+
+# Finally we need to tell "make" what source and header file each object file depends on
+pascal.o: pascal.c

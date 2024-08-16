@@ -1,0 +1,279 @@
+##############################################################################
+#  Copyright Christopher Kormanyos 2021 - 2024.
+#  Distributed under the Boost Software License,
+#  Version 1.0. (See accompanying file LICENSE_1_0.txt
+#  or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+name: real-time-cpp
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+  schedule:
+    - cron: '40 23 * * *' # run at 11:40 PM UTC
+jobs:
+  gnumake-clang-tidy-native:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        standard: [ c++14 ]
+        compiler: [ g++, clang++ ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+      - name: update-tools
+        run: sudo apt install clang clang-tidy
+      - name: gnumake-clang-tidy-native
+        run: |
+          cd .tidy/make
+          echo "running clang-tidy"
+          echo "make prepare -f make_tidy_01_generic.gmk MY_CC=${{ matrix.compiler }} MY_STD=${{ matrix.standard }}"
+          echo
+          make prepare -f make_tidy_01_generic.gmk MY_CC=${{ matrix.compiler }} MY_STD=${{ matrix.standard }}
+          echo "make tidy -f make_tidy_01_generic.gmk --jobs=8 MY_CC=${{ matrix.compiler }} MY_STD=${{ matrix.standard }}"
+          make tidy -f make_tidy_01_generic.gmk --jobs=8 MY_CC=${{ matrix.compiler }} MY_STD=${{ matrix.standard }}
+          echo
+          echo "verify empty word count of ./tmp/all.tidy_txt"
+          wc ./tmp/all.tidy_txt | grep '0 0 0'
+  target-avr:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [ avr, atmega2560 ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+      - name: update-tools
+        run: sudo apt install gcc-avr avr-libc
+      - name: target-avr-${{ matrix.suite }}
+        run: |
+          ./target/build/build.sh ${{ matrix.suite }} rebuild
+          ls -la ./bin/ref_app.hex ./bin/ref_app.s19 ./bin/ref_app.map
+        working-directory: ./ref_app/
+  target-avr-cmake:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [ avr, atmega2560 ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+      - name: update-tools
+        run: sudo apt install gcc-avr avr-libc
+      - name: target-avr-cmake-${{ matrix.suite }}
+        run: |
+          mkdir build
+          cd build
+          cmake -Wno-dev ../ref_app -DTRIPLE=avr -DTARGET=${{ matrix.suite }} -DCMAKE_TOOLCHAIN_FILE=../ref_app/cmake/gcc-toolchain.cmake
+          make -j ref_app
+          ls -la ref_app.hex ref_app.s19 ref_app.map
+        working-directory: ./
+  target-avr-macos:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [ avr, atmega2560 ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+      - name: clone-osx-cross-homebrew-avr
+        run: |
+          echo 'Clone osx-cross/homebrew-avr'
+          echo ""
+          git clone -b main --depth 1 https://github.com/osx-cross/homebrew-avr ${{ runner.workspace }}/homebrew-avr
+        working-directory: ./
+      - name: install-osx-cross-homebrew-avr
+        run: |
+          echo 'Tap osx-cross/homebrew-avr on MacOS via brew'
+          echo ""
+          echo 'Install osx-cross/homebrew-avr on MacOS via brew'
+          cd ${{ runner.workspace }}/homebrew-avr
+          brew tap osx-cross/avr
+          brew install avr-gcc@12
+        working-directory: ./
+      - name: target-avr-macos-${{ matrix.suite }}
+        run: |
+          echo query the GNUmake version
+          make --version
+          echo Add the brew-installed-avr-gcc@12 path
+          PATH="/opt/homebrew/opt/avr-gcc@12/bin:$PATH"
+          echo ""
+          echo Query the avr-gcc version
+          avr-g++ -v
+          echo ""
+          echo Manually call GNUmake to build the target
+          echo ""
+          make -f target/app/make/app_make.gmk rebuild TGT=${{ matrix.suite }}
+          echo ""
+          ls -la ./bin/ref_app.hex ./bin/ref_app.s19 ./bin/ref_app.map
+        working-directory: ./ref_app/
+  target-arm:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [ am335x, bcm2835_raspi_b, lpc11c24, nxp_imxrt1062, stm32f100, stm32f407, stm32f429, stm32f446, stm32h7a3, stm32l100c, stm32l152 ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+      - name: update-tools
+        run: sudo apt install gcc-arm-none-eabi
+      - name: target-arm-${{ matrix.suite }}
+        run: |
+          ./target/build/build.sh ${{ matrix.suite }} rebuild
+          ls -la ./bin/ref_app.hex ./bin/ref_app.s19 ./bin/ref_app.map
+        working-directory: ./ref_app/
+  target-arm-cmake:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [ am335x, bcm2835_raspi_b, lpc11c24, nxp_imxrt1062, stm32f100, stm32f407, stm32f429, stm32f446, stm32h7a3, stm32l100c, stm32l152 ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+      - name: update-tools
+        run: sudo apt install gcc-arm-none-eabi
+      - name: target-arm-cmake-${{ matrix.suite }}
+        run: |
+          mkdir build
+          cd build
+          cmake -Wno-dev ../ref_app -DTRIPLE=arm-none-eabi -DTARGET=${{ matrix.suite }} -DCMAKE_TOOLCHAIN_FILE=../ref_app/cmake/gcc-toolchain.cmake
+          make -j ref_app
+          ls -la ref_app.hex ref_app.s19 ref_app.map
+        working-directory: ./
+  target-arm-macos:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [ am335x, bcm2835_raspi_b, lpc11c24, nxp_imxrt1062, stm32f100, stm32f407, stm32f429, stm32f446, stm32h7a3, stm32l100c, stm32l152 ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+      - name: wget-macos-gnu-arm-toolchain
+        run: |
+          echo 'wget-macos-gnu-arm-toolchain'
+          echo ""
+          mkdir -p macos-gnu-arm-toolchain && cd macos-gnu-arm-toolchain
+          wget --no-check-certificate https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-darwin-x86_64-arm-none-eabi.tar.xz
+        working-directory: ${{ runner.workspace }}
+      - name: unpack-macos-gnu-arm-toolchain
+        run: |
+          cd ${{ runner.workspace }}/macos-gnu-arm-toolchain
+          tar -xf arm-gnu-toolchain-12.3.rel1-darwin-x86_64-arm-none-eabi.tar.xz
+      - name: target-arm-macos-${{ matrix.suite }}
+        run: |
+          echo 'set and verify add path macos gnu arm toolchain'
+          PATH="${{ runner.workspace }}/macos-gnu-arm-toolchain/arm-gnu-toolchain-12.3.rel1-darwin-x86_64-arm-none-eabi/bin:$PATH"
+          echo ""
+          echo 'arm-none-eabi-g++ -v'
+          arm-none-eabi-g++ -v
+          echo ""
+          echo query the GNUmake version
+          make --version
+          echo Manually call GNUmake to build the target
+          echo ""
+          make -f target/app/make/app_make.gmk rebuild TGT=${{ matrix.suite }}
+          echo ""
+          ls -la ./bin/ref_app.hex ./bin/ref_app.s19 ./bin/ref_app.map
+        working-directory: ./ref_app/
+  target-riscv:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [ riscvfe310, wch_ch32v307 ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+      - name: update-tools
+        run: |
+          wget --no-check-certificate https://buildbot.embecosm.com/job/riscv32-gcc-ubuntu2204-release/10/artifact/riscv32-embecosm-ubuntu2204-gcc13.2.0.tar.gz
+          tar -xzf riscv32-embecosm-ubuntu2204-gcc13.2.0.tar.gz -C ${{ runner.workspace }}
+        working-directory: ./
+      - name: target-riscvfe310-${{ matrix.suite }}
+        run: |
+          PATH="${{ runner.workspace }}/riscv32-embecosm-ubuntu2204-gcc13.2.0/bin:$PATH"
+          ./target/build/build.sh ${{ matrix.suite }} rebuild
+          ls -la ./bin/ref_app.elf ./bin/ref_app.hex ./bin/ref_app.map ./bin/ref_app.s19
+        working-directory: ./ref_app/
+  target-x86_64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+      - name: build-target-x86_64-w64-mingw32
+        run: |
+          ./target/build/build.sh x86_64-w64-mingw32 rebuild
+          ls ./bin/ref_app.exe
+        working-directory: ./ref_app/
+        shell: bash
+  target-host-cmake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+      - name: build-target-host
+        run: |
+          mkdir build
+          cd build
+          cmake -Wno-dev ../ref_app -DTARGET=host -DCMAKE_TOOLCHAIN_FILE=../ref_app/cmake/gcc-toolchain.cmake
+          make -j ref_app
+          ls ref_app.exe ref_app.map
+        working-directory: ./
+        shell: bash
+  msvc-msbuild:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: cmd
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [ Debug, Release ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          toolset: 14.2
+      - name: msvc-msbuild-${{ matrix.suite }}
+        run: |
+          MSBuild -m ref_app.sln -p:Configuration=${{ matrix.suite }} -p:Platform=x64 /t:Rebuild
+          dir .\tmp\${{ matrix.suite }}\ref_app.exe
+        working-directory: ./ref_app/

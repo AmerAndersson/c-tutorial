@@ -1,0 +1,45 @@
+#
+#  Copyright Christopher Kormanyos 2007 - 2024.
+#  Distributed under the Boost Software License,
+#  Version 1.0. (See accompanying file LICENSE_1_0.txt
+#  or copy at http://www.boost.org/LICENSE_1_0.txt)
+#
+
+# ------------------------------------------------------------------------------
+# compiler flags for the target architecture
+# ------------------------------------------------------------------------------
+
+GCC_VERSION   = 13.2.1
+GCC_TARGET    = arm-none-eabi
+GCC_PREFIX    = arm-none-eabi
+
+LINKER_DEFINITION_FILE  := $(PATH_TGT_MAKE)/$(TGT)_with_stdlib.ld
+
+TGT_SUFFIX    = elf
+
+TGT_ALLFLAGS  = -O2                                                               \
+                -mcpu=cortex-m4                                                   \
+                -mtune=cortex-m4                                                  \
+                -mthumb                                                           \
+                -mfloat-abi=soft                                                  \
+                -finline-functions                                                \
+                -finline-limit=128                                                \
+                -mno-unaligned-access                                             \
+                -mno-long-calls
+
+TGT_CFLAGS    = -std=c99                                                          \
+                -Wunsuffixed-float-constants                                      \
+                $(TGT_ALLFLAGS)
+
+TGT_CXXFLAGS  = -std=c++14                                                        \
+                -Wno-psabi                                                        \
+                $(TGT_ALLFLAGS)
+
+TGT_INCLUDES  = -isystem $(PATH_APP)/util/STL
+
+TGT_AFLAGS    =
+
+TGT_LDFLAGS   = -nostartfiles                                                     \
+                -Wl,--gc-sections                                                 \
+                -Wl,-Map,$(APP).map                                               \
+                -T $(LINKER_DEFINITION_FILE)
